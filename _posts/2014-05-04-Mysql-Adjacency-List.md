@@ -92,21 +92,40 @@ The above procedure only works if there is a root(ie no cyclic references) and e
 
 {% highlight sql %}
 
-CREATE TRIGGER `adjacencyListSanityCheck` BEFORE INSERT ON `comments`
+CREATE TRIGGER `adjacencyListSanityCheckInsert` BEFORE INSERT ON `comments`
 FOR EACH ROW
 BEGIN
   IF (SELECT COUNT(1) FROM comments WHERE id = NEW.parent) != 1 THEN
     SIGNAL SQLSTATE '45000'
     SET MESSAGE_TEXT = 'You are trying to insert an item pointing to a parent that does not exist!';
-  ELSE
-    -- If the validation passes, you can recalculate the depth
-    CALL calcDepthFromAdjacencyList();
   END IF;
+
+  -- If the validation passes, you can recalculate the depth
+  CALL calcDepthFromAdjacencyList();
 END;
 
 {% endhighlight %}
 
+You can create an update trigger that will also check to see that atleast one element is a root like so:
 
-You can recreate the trigger for updates as well by replacing `BEFORE INSERT` to `BEFORE UPDATE`
+{% highlight sql %}
+
+CREATE TRIGGER `adjacencyListSanityCheckUpdate` BEFORE UPDATE ON `comments`
+FOR EACH ROW
+BEGIN
+  IF (SELECT COUNT(1) FROM comments WHERE id = NEW.parent) != 1 THEN
+    SIGNAL SQLSTATE '45000'
+    SET MESSAGE_TEXT = 'You are trying to insert an item pointing to a parent that does not exist!';
+  END IF;
+  IF (SELECT COUNT(1) FROM comments WHERE parent IS NULL) = 0 THEN
+    SIGNAL SQLSTATE '45000'
+    SET MESSAGE_TEXT = 'You need atleast 1 root element';
+  END IF;
+  
+  -- If the validation passes, you can recalculate the depth
+  CALL calcDepthFromAdjacencyList();
+END;
+
+{% endhighlight %}
 
 You should consider adjacency list only if the data that you are trying to model will have frequent updates and you don't need to query anything of indeterminate depth or anything that is too deep. For cases that you do need to do that, we can consider other models like nested sets and breadcrumbs.
