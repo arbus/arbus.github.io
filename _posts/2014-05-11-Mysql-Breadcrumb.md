@@ -5,7 +5,9 @@ date:   2014-05-11 22:04:06
 categories: mysql
 ---
 
-We continue from Adjacency Lists. We shall continue to try and model a set of comments with the structure shown below:
+We continue from Adjacency Lists to the Breadcrumb Model which is an extension of the idea behind adjacency list where each node stores not just its parents but the entire line up to the root.
+
+We shall continue to try and model a set of comments with the structure shown below:
 
 
 <pre>
@@ -70,5 +72,5 @@ END;
 
 {% endhighlight %}
 
-You can attach this to triggers just like adjacency list to regenerate the breadcrumb column on update.
+You can attach this to triggers just like we did on the [Adjacency List post]({% post_url 2014-05-04-Mysql-Adjacency-List %})
 

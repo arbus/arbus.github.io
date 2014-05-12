@@ -128,4 +128,4 @@ END;
 
 {% endhighlight %}
 
-You should consider adjacency list only if the data that you are trying to model will have frequent updates and you don't need to query anything of indeterminate depth or anything that is too deep. For cases that you do need to do that, we can consider other models like nested sets and breadcrumbs.
+You should consider adjacency list only if the data that you are trying to model will have frequent updates and you don't need to query anything of indeterminate depth or anything that is too deep. For cases that you do need to do that, we can consider other models like nested sets and [breadcrumbs]({% post_url 2014-05-11-Mysql-Breadcrumb %}).
