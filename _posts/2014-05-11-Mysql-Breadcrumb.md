@@ -3,6 +3,7 @@ layout: post_page
 title:  "Trees in MySql - Breadcrumb"
 date:   2014-05-11 22:04:06
 categories: mysql
+comments: true
 ---
 
 We continue from Adjacency Lists to the Breadcrumb Model which is an extension of the idea behind adjacency list where each node stores not just its parents but the entire line up to the root.

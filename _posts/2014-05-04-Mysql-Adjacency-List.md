@@ -3,6 +3,7 @@ layout: post_page
 title:  "Trees in MySql - Adjacency List"
 date:   2014-05-04 22:04:06
 categories: mysql
+comments: true
 ---
 
 In this series of posts, we shall consider the problem of modeling trees in MySQL.
