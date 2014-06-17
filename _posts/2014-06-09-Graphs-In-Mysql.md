@@ -150,20 +150,47 @@ CREATE VIEW routebuilder AS
   GROUP BY depart, arrive;
 {% endhighlight %}
 
-Finally, we create a stored procedure that will seed the `trips` table with all the possible trips using the `routebuilder` view
+Now, we have all the building blocks that we need to populate the `trips` table. 
+
+First, lets clear the easiest trips, the single hop trips like so:
 {% highlight sql %}
+INSERT INTO trips
+    SELECT
+      tracks.depart, tracks.arrive, 1, CONCAT(tracks.depart, ',', tracks.arrive)
+    FROM tracks;
+{% endhighlight %}
+
+Now if you were to look at the `routebuilder` view, you will see that it is populated by all the possible 2 hop journeys from our initial set of single hop journeys. We can add those 2 hop journeys in via:
+
+{% highlight sql %}
+INSERT INTO trips
+  SELECT
+    routebuilder.depart,
+    routebuilder.arrive,
+    routebuilder.hops,
+    routebuilder.route
+  FROM routebuilder
+  LEFT JOIN trips ON 
+    routebuilder.depart = trips.depart AND routebuilder.arrive = trips.arrive
+  WHERE trips.depart IS NULL AND trips.arrive IS NULL;
+{% endhighlight %}
+
+Now if you look at the `routebuilder` again, you will see all the possible 3 hop journeys that are possible from our set if 2 hop journeys are now listed along with that initial set of 2 hop journeys from the previous step. Another neat side effect of keep track of the hops is that because of the primary key constraint in the `trips` table, you cannot have a trip with longer hops overwrite a trip with smaller hops with the same depart arrive locations since the insert occurs in ascending order of hops. Now because we need to loop the above query, lets combine the query and the initial seeding into 1 procedure:
+
+{% highlight sql linenos %}
 CREATE PROCEDURE buildTrips()
 BEGIN
-  DECLARE row_count INT DEFAULT 0;
+  SET @row_count = 0;
   TRUNCATE TABLE trips;
-  -- First, we seed the trips table with all the 1 hop routes that are possible. This is basically just duplicating the data in the tracks table.
+  -- First, we seed the trips table with all the 1 hop routes that are possible. 
+  -- This is basically just duplicating the data in the tracks table.
   INSERT INTO trips
     SELECT
       tracks.depart, tracks.arrive, 1, CONCAT(tracks.depart, ',', tracks.arrive)
     FROM tracks;
 
-  SET row_count = ROW_COUNT();
-  WHILE(row_count > 0) DO
+  SET @row_count = ROW_COUNT();
+  WHILE(@row_count > 0) DO
     -- Next, for each of the possible journeys, we build upon it using the routebuilder view.
     INSERT INTO trips
       SELECT
@@ -175,10 +202,12 @@ BEGIN
       LEFT JOIN trips ON 
         routebuilder.depart = trips.depart AND routebuilder.arrive = trips.arrive
       WHERE trips.depart IS NULL AND trips.arrive IS NULL;
-    SET row_count = ROW_COUNT();
+    SET @row_count = ROW_COUNT();
   END WHILE;
 END;
 {% endhighlight %}
+
+The `ROW_COUNT()` function returns the number of rows selected/updated/deleted/inserted from the preceding statement. We assign this the `@row_count` instance variable to keep track of the number of possible routes that we have to define in the next step. So in line 12, this refers to the initial set of tracks single station trips. Inside the loop, we keep track of the number of new rows inserted via the `routebuilder` by calling `ROW_COUNT()` and we exit when it no longer generate any new trips.
 
 Once the `buildTrips` procedure is called, the `trips` table will be seeded with the shortest possible routes from all possible start and end points. So using this method, we can answer our initial 2 questions in one shot.
 
@@ -190,4 +219,6 @@ If the query returns a row, then the 2 points are reachable and the `route` colu
 
 #### Conclusions
 
-This approach works really well when your nodes and edges don't change a lot. In this case, we can always be sure that recalculating data will be significantly faster than building new stations and laying down new track! This precalculation step provides extremely fast lookup times for routes. The tradeoff is that you have to recalculate the `trips` table every time any new stations or tracks are laid.
+This approach works really well when your nodes and edges don't change a lot. In this case, we can always be sure that recalculating data will be significantly faster than building new stations and laying down new track! This precalculation step provides extremely fast lookup times for routes. The tradeoff is that you have to recalculate the `trips` table every time any new stations are built or tracks are laid.
+
+Another issue that you must consider is the size of the `trips` table. This table has 552 rows 22 stations and connected by 63 pieces of track and the trips table will only grow rapidly as the stations and tracks increase in number. 
