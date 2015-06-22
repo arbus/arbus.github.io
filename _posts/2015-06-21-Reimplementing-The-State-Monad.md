@@ -36,11 +36,12 @@ instance Applicative (State s) where
 	-- pure :: a -> State s a
 	pure x = State (\s -> (x, s))
 	-- (<*>) :: State s (a -> b) -> State s a -> State s b
-	x <*> y = State (\s -> let
-								(f, s')  = runState x s
-								(a, s'') = runState y s'
-						   in
-						   		(f a, s''))
+	x <*> y = State (\s -> 
+		let
+			(f, s')  = runState x s
+			(a, s'') = runState y s'
+		in
+			(f a, s''))
 
 {% endhighlight %}
 
@@ -83,14 +84,20 @@ normalAnnotateTree x = let (a, _) = go x 1 in a
 	where
 	go :: Tree a -> Int -> (Tree (Label a), Int)
 	go EmptyTree count = (EmptyTree, count)
-	go (Node a as) count = let
-								lCounter = count
-								(bs, count') = foldr go' ([], count+1) as
-								rCounter = count'
-							in (Node (Label lCounter rCounter a) bs, count' + 1)
+	go (Node a as) count =
+		let
+			lCounter = count
+			(bs, count') = foldr go' ([], count+1) as
+			rCounter = count'
+		in
+			(Node (Label lCounter rCounter a) bs, count' + 1)
 		where
 		go' :: Tree a -> ([Tree (Label a)], Int) -> ([Tree (Label a)], Int)
-		go' tree (acc, count) = let (tree', count') = go tree count in (tree':acc, count')
+		go' tree (acc, count) =
+			let
+				(tree', count') = go tree count
+			in
+				(tree':acc, count')
 
 {% endhighlight %}
 
